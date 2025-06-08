@@ -1,13 +1,19 @@
-#--- Backend ---
-faiss-cpu==1.7.4
-langchain==0.0.188
-requests==2.31.0
-numpy==1.24.3
-tqdm==4.66.1
-python-dotenv==1.0.0
-
-beautifulsoup4==4.12.2
-lxml==4.9.3
-
+# Dependencies para FastAPI + RAG backend
 fastapi==0.95.2
 uvicorn==0.24.0
+
+# FAISS y vectores
+faiss-cpu==1.7.4
+numpy==1.24.3
+
+# Scraping y parsing
+beautifulsoup4==4.12.2
+lxml==4.9.3
+requests==2.31.0
+
+# Utilidades
+tqdm==4.66.1
+python-dotenv==1.0.0
+langchain==0.0.188
+
+# (FastAPI ya trae Starlette y Pydantic)
