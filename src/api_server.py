@@ -1,5 +1,3 @@
-# api_server.py
-
 import os
 import uuid
 import json
@@ -44,14 +42,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ─── 3) Monta la carpeta build de React tras `npm run build` ───
-# Asume que tu ciclo Docker o tu despliegue ya ha hecho `npm run build`
-build_dir = os.path.join(os.path.dirname(__file__), "..", "frontend", "build")
-if os.path.isdir(build_dir):
-    # cualquier ruta NO /upload-article ni /query servirá index.html
-    app.mount("/", StaticFiles(directory=build_dir, html=True), name="static")
-
-# ─── 4) Modelos Pydantic ────────────────────────────────────────
+# ─── 3) Modelos Pydantic ───────────────────────────────────────
 class UploadArticleRequest(BaseModel):
     url: str
 
@@ -65,7 +56,7 @@ class QueryRequest(BaseModel):
 class QueryResponse(BaseModel):
     answer: str
 
-# ─── 5) POST /upload-article ──────────────────────────────────
+# ─── 4) POST /upload-article ───────────────────────────────────
 @app.post("/upload-article", response_model=UploadArticleResponse)
 def upload_article(req: UploadArticleRequest):
     url = req.url.strip()
@@ -115,7 +106,7 @@ def upload_article(req: UploadArticleRequest):
 
     return UploadArticleResponse(status="Article indexed successfully", doc_id=doc_id)
 
-# ─── 6) POST /query ────────────────────────────────────────────
+# ─── 5) POST /query ────────────────────────────────────────────
 @app.post("/query", response_model=QueryResponse)
 def query_article(req: QueryRequest):
     q = req.question.strip()
@@ -138,7 +129,6 @@ def query_article(req: QueryRequest):
     _, ids = index.search(vec_q, TOP_K)
     chunks = [metadatos[i]["text"] for i in ids[0] if i < len(metadatos)]
 
-    # filtrado simple por keywords
     kws = q.lower().split()
     filtered = [c for c in chunks if any(k in c.lower() for k in kws)]
     if not filtered:
@@ -151,7 +141,12 @@ def query_article(req: QueryRequest):
 
     return QueryResponse(answer=resp)
 
-# ─── 7) Arranque ───────────────────────────────────────────────
+# ─── 6) Monta la app de React (al final para no tapar rutas API) ─
+build_dir = os.path.join(os.path.dirname(__file__), "..", "frontend", "build")
+if os.path.isdir(build_dir):
+    app.mount("/", StaticFiles(directory=build_dir, html=True), name="static")
+
+# ─── 7) Arranque (solo local/testing) ──────────────────────────
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
     uvicorn.run("src.api_server:app", host="0.0.0.0", port=port, reload=False)
