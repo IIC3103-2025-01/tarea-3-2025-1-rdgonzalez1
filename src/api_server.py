@@ -40,8 +40,7 @@ app = FastAPI(
 # ---------------------------------------------------
 # CORS: permitir llamadas desde tu frontend en producción
 # ---------------------------------------------------
-# Define aquí tu dominio de frontend, p.ej.:
-# FRONTEND_URL = "https://tudominio.vercel.app"
+# En producción, define la URL de tu frontend aquí o como variable de entorno FRONTEND_URL
 FRONTEND_URL = os.getenv("FRONTEND_URL", "*")
 app.add_middleware(
     CORSMiddleware,
@@ -58,7 +57,6 @@ build_dir = os.path.join(os.path.dirname(__file__), "..", "frontend", "build")
 if os.path.isdir(build_dir):
     app.mount("/", StaticFiles(directory=build_dir, html=True), name="static")
 
-
 # ---------------------------------------------------
 # Modelos Pydantic para los endpoints
 # ---------------------------------------------------
@@ -74,7 +72,6 @@ class QueryRequest(BaseModel):
 
 class QueryResponse(BaseModel):
     answer: str
-
 
 # ---------------------------------------------------
 # Endpoint: subir y procesar artículo
@@ -101,8 +98,7 @@ def upload_article(req: UploadArticleRequest):
         metadatos = load_metadata(METADATA_PATH)
 
         chunks = split_text_to_chunks(texto)
-        nuevos_vectores = []
-        nuevos_metadatos = []
+        nuevos_vectores, nuevos_metadatos = [], []
         seen = {(m["doc_id"], m["chunk_id"]) for m in metadatos}
 
         for idx, frag in enumerate(chunks):
