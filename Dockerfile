@@ -21,8 +21,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # copia código backend
 COPY src/ ./src
-COPY data/ ./data
-COPY docs/ ./docss
+COPY data/docs/ ./docs
 COPY embeddings/ .
 
 # copia el build de React desde la etapa 1
