@@ -21,7 +21,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # copia código backend
 COPY src/ ./src
-COPY data/ docs/
+COPY data/ ./data
+COPY docs/ ./docss
 COPY embeddings/ .
 
 # copia el build de React desde la etapa 1
@@ -32,3 +33,7 @@ EXPOSE ${PORT}
 
 # comando de arranque
 CMD ["uvicorn", "src.api_server:app", "--host", "0.0.0.0", "--port", "8080"]
+
+RUN mkdir -p /app/embeddings
+RUN chmod -R 777 /app/embeddings
+
