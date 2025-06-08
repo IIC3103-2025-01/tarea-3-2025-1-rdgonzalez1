@@ -1,3 +1,5 @@
+# api_server.py
+
 import os
 import uuid
 import json
@@ -11,8 +13,6 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from src.config import (
-    DOCS_DIR,
-    EMBEDDINGS_DIR,
     FAISS_INDEX_PATH,
     METADATA_PATH,
     VECTOR_DIM,
@@ -28,38 +28,30 @@ from src.utils import (
 )
 from src.build_index import build_or_load_faiss_index
 
-# ---------------------------------------------------
-# Inicializa FastAPI
-# ---------------------------------------------------
+# ─── 1) Inicializa FastAPI ─────────────────────────────────────
 app = FastAPI(
     title="RAG Wikipedia Chatbot",
     version="1.0",
     description="Backend + Frontend estático integrado"
 )
 
-# ---------------------------------------------------
-# CORS: permitir llamadas desde tu frontend en producción
-# ---------------------------------------------------
-# En producción, define la URL de tu frontend aquí o como variable de entorno FRONTEND_URL
-FRONTEND_URL = os.getenv("FRONTEND_URL", "*")
+# ─── 2) CORS wildcard (acepta cualquier origen) ────────────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[FRONTEND_URL] if FRONTEND_URL != "*" else ["*"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ---------------------------------------------------
-# Monta el build de React en "/" (tras npm run build)
-# ---------------------------------------------------
+# ─── 3) Monta la carpeta build de React tras `npm run build` ───
+# Asume que tu ciclo Docker o tu despliegue ya ha hecho `npm run build`
 build_dir = os.path.join(os.path.dirname(__file__), "..", "frontend", "build")
 if os.path.isdir(build_dir):
+    # cualquier ruta NO /upload-article ni /query servirá index.html
     app.mount("/", StaticFiles(directory=build_dir, html=True), name="static")
 
-# ---------------------------------------------------
-# Modelos Pydantic para los endpoints
-# ---------------------------------------------------
+# ─── 4) Modelos Pydantic ────────────────────────────────────────
 class UploadArticleRequest(BaseModel):
     url: str
 
@@ -73,9 +65,7 @@ class QueryRequest(BaseModel):
 class QueryResponse(BaseModel):
     answer: str
 
-# ---------------------------------------------------
-# Endpoint: subir y procesar artículo
-# ---------------------------------------------------
+# ─── 5) POST /upload-article ──────────────────────────────────
 @app.post("/upload-article", response_model=UploadArticleResponse)
 def upload_article(req: UploadArticleRequest):
     url = req.url.strip()
@@ -125,10 +115,7 @@ def upload_article(req: UploadArticleRequest):
 
     return UploadArticleResponse(status="Article indexed successfully", doc_id=doc_id)
 
-
-# ---------------------------------------------------
-# Endpoint: consulta RAG
-# ---------------------------------------------------
+# ─── 6) POST /query ────────────────────────────────────────────
 @app.post("/query", response_model=QueryResponse)
 def query_article(req: QueryRequest):
     q = req.question.strip()
@@ -151,7 +138,7 @@ def query_article(req: QueryRequest):
     _, ids = index.search(vec_q, TOP_K)
     chunks = [metadatos[i]["text"] for i in ids[0] if i < len(metadatos)]
 
-    # Filtrado simple por palabras clave
+    # filtrado simple por keywords
     kws = q.lower().split()
     filtered = [c for c in chunks if any(k in c.lower() for k in kws)]
     if not filtered:
@@ -164,10 +151,7 @@ def query_article(req: QueryRequest):
 
     return QueryResponse(answer=resp)
 
-
-# ---------------------------------------------------
-# Lanzamiento
-# ---------------------------------------------------
+# ─── 7) Arranque ───────────────────────────────────────────────
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
     uvicorn.run("src.api_server:app", host="0.0.0.0", port=port, reload=False)
